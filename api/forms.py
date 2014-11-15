@@ -85,3 +85,45 @@ class PickItemForm(forms.Form):
         user_item.owner_id = user.id
         user_item.save()
         return user_item
+
+
+class UserItemRelatedForm(forms.Form):
+    user_item_id = forms.IntegerField()
+    user_item = None
+    user = None
+
+    def __init__(self, data, user):
+        super(UserItemRelatedForm, self).__init__(data)
+        self.user = user
+
+    def clean(self):
+        cleaned_data = super(UserItemRelatedForm, self).clean()
+        try:
+            self.user_item = UserItem.objects.get(pk=cleaned_data.get('user_item_id'))
+        except UserItem.DoesNotExist:
+            self.add_error('user_item_id', 'User item does not exist.')
+        if self.user_item.owner_id != self.user.id:
+            self.add_error('user_item_id', 'This user item does not belong to you.')
+        return cleaned_data
+
+
+class DeleteUserItemForm(UserItemRelatedForm):
+    def delete(self):
+        if self.user_item is not None:
+            self.user_item.delete()
+
+
+class FinishUserItem(UserItemRelatedForm):
+    def finish(self):
+        if self.user_item is not None:
+            self.user_item.finish()
+            self.user_item.save()
+            return self.user_item
+
+
+class UnfinishUserItem(UserItemRelatedForm):
+    def unfinish(self):
+        if self.user_item is not None:
+            self.user_item.unfinish()
+            self.user_item.save()
+            return self.user_item

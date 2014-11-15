@@ -119,3 +119,54 @@ def pick_item(request):
     except User.DoesNotExist:
         return JsonResponse({'errorMessage': 'Please login first.'}, 403)
     return JsonResponse(result)
+
+
+def delete_user_item(request):
+    try:
+        form_data = json.loads(request.body)
+    except:
+        return JsonResponse({'errorMessage': 'Bad JSON format.'}, 400)
+    try:
+        result = {}
+        user = User.objects.get(pk=request.session['user_id'])
+        form = forms.DeleteUserItemForm(form_data, user)
+        if form.is_valid():
+            form.delete()
+        result['error'] = form.errors
+    except User.DoesNotExist:
+        return JsonResponse({'errorMessage': 'Please login first.'}, 403)
+    return JsonResponse(result)
+
+
+def finish_user_item(request):
+    try:
+        form_data = json.loads(request.body)
+    except:
+        return JsonResponse({'errorMessage': 'Bad JSON format.'}, 400)
+    try:
+        result = {}
+        user = User.objects.get(pk=request.session['user_id'])
+        form = forms.FinishUserItem(form_data, user)
+        if form.is_valid():
+            result = model_to_dict(form.finish())
+        result['error'] = form.errors
+    except User.DoesNotExist:
+        return JsonResponse({'errorMessage': 'Please login first.'}, 403)
+    return JsonResponse(result)
+
+
+def unfinish_user_item(request):
+    try:
+        form_data = json.loads(request.body)
+    except:
+        return JsonResponse({'errorMessage': 'Bad JSON format.'}, 400)
+    try:
+        result = {}
+        user = User.objects.get(pk=request.session['user_id'])
+        form = forms.UnfinishUserItem(form_data, user)
+        if form.is_valid():
+            result = model_to_dict(form.unfinish())
+        result['error'] = form.errors
+    except User.DoesNotExist:
+        return JsonResponse({'errorMessage': 'Please login first.'}, 403)
+    return JsonResponse(result)

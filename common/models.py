@@ -20,3 +20,11 @@ class UserItem(models.Model):
     created_on = models.BigIntegerField(default=get_time_milliseconds, blank=True)
     finished_on = models.BigIntegerField(default=0, blank=True)
     finished = models.BooleanField(default=False)
+
+    def finish(self):
+        self.finished = True
+        self.finished_on = get_time_milliseconds()
+
+    def unfinish(self):
+        self.finished = False
+        self.finished_on = 0
