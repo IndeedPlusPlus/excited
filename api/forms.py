@@ -64,3 +64,24 @@ class CreateItemForm(forms.Form):
         user_item.item_id = item.id
         user_item.owner_id = user.id
         user_item.save()
+        return user_item
+
+
+class PickItemForm(forms.Form):
+    item_id = forms.IntegerField()
+    item = None
+
+    def clean(self):
+        cleaned_data = super(PickItemForm, self).clean()
+        try:
+            self.item = Item.objects.get(pk=cleaned_data.get('item_id'))
+        except Item.DoesNotExist:
+            self.add_error('item_id', 'Item does not exist.')
+        return cleaned_data
+
+    def pick(self, user):
+        user_item = UserItem()
+        user_item.item_id = self.item.id
+        user_item.owner_id = user.id
+        user_item.save()
+        return user_item

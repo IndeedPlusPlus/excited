@@ -97,7 +97,24 @@ def create_item(request):
         user = User.objects.get(pk=request.session['user_id'])
         form = forms.CreateItemForm(form_data)
         if form.is_valid():
-            form.save(user)
+            result = model_to_dict(form.save(user))
+        result['error'] = form.errors
+    except User.DoesNotExist:
+        return JsonResponse({'errorMessage': 'Please login first.'}, 403)
+    return JsonResponse(result)
+
+
+def pick_item(request):
+    try:
+        form_data = json.loads(request.body)
+    except:
+        return JsonResponse({'errorMessage': 'Bad JSON format.'}, 400)
+    try:
+        result = {}
+        user = User.objects.get(pk=request.session['user_id'])
+        form = forms.PickItemForm(form_data)
+        if form.is_valid():
+            result = model_to_dict(form.pick(user))
         result['error'] = form.errors
     except User.DoesNotExist:
         return JsonResponse({'errorMessage': 'Please login first.'}, 403)
