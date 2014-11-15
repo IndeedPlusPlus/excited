@@ -117,7 +117,10 @@ def create_item(request):
         user = User.objects.get(pk=request.session['user_id'])
         form = forms.CreateItemForm(form_data)
         if form.is_valid():
-            result = model_to_dict(form.save(user))
+            user_item = form.save(user)
+            result = model_to_dict(user_item)
+            item = user_item.item
+            result['item'] = model_to_dict(item)
         result['errors'] = form.errors
     except User.DoesNotExist:
         return JsonResponse({'errorMessage': 'Please login first.'}, 403)

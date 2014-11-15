@@ -64,7 +64,7 @@ class CreateItemForm(forms.Form):
         item.meta = ' { "type" : "todo" } '
         item.save()
         user_item = UserItem()
-        user_item.item_id = item.id
+        user_item.item = item
         user_item.owner_id = user.id
         user_item.save()
         return user_item
