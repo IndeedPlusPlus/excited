@@ -1,5 +1,6 @@
-from common.utils import get_time_milliseconds
 from django.db import models
+
+from common.utils import get_time_milliseconds
 
 
 class User(models.Model):
@@ -11,6 +12,7 @@ class User(models.Model):
 class Item(models.Model):
     title = models.TextField(max_length=65536)
     content = models.TextField(max_length=65536)
+    source = models.TextField(max_length=65556, default='', blank=True)
     created_on = models.BigIntegerField(default=get_time_milliseconds, blank=True)
 
 
