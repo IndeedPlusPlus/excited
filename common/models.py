@@ -12,7 +12,8 @@ class User(models.Model):
 class Item(models.Model):
     title = models.TextField(max_length=65536)
     content = models.TextField(max_length=65536)
-    source = models.TextField(max_length=65556, default='', blank=True)
+    meta = models.TextField(max_length=65536, default='{}', blank=True)
+    source = models.CharField(max_length=255, default='', blank=True, db_index=True)
     created_on = models.BigIntegerField(default=get_time_milliseconds, blank=True)
 
 

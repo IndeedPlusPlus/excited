@@ -2,12 +2,13 @@ from datetime import datetime
 import decimal
 import json
 
-from common.models import User, UserItem, Item
-from common.utils import get_time_milliseconds
 from django.db.models.base import ModelState
 from django.forms.models import model_to_dict
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST
+
+from common.models import User, UserItem, Item
+from common.utils import get_time_milliseconds
 import forms
 
 
@@ -40,7 +41,7 @@ def register(request):
         result = {}
         if form.is_valid():
             result = model_to_dict(form.register(request))
-        result['error'] = form.errors
+        result['errors'] = form.errors
         if result.has_key('password_hash'):
             del result['password_hash']
     except Exception as e:
@@ -61,16 +62,32 @@ def login(request):
         result = model_to_dict(form.login(request))
     if result.has_key('password_hash'):
         del result['password_hash']
-    result['error'] = form.errors
+    result['errors'] = form.errors
     # #  except Exception as e:
     # return JsonResponse({'errorMessage': "%s" % e}, 500)
     return JsonResponse(result)
 
 
-def get_items(request, start_form=0, item_count=10):
+def check_login(request):
     try:
+        if not request.session.has_key('user_id'):
+            raise User.DoesNotExist()
         user = User.objects.get(pk=request.session['user_id'])
-        user_items_set = UserItem.objects.filter(owner_id=user.id).filter(pk__gt=start_form).select_related()[
+        result = model_to_dict(user)
+        result['signed_in'] = True
+        if result.has_key('password_hash'):
+            del result['password_hash']
+    except User.DoesNotExist:
+        return JsonResponse({'signed_in': False})
+    return JsonResponse(result)
+
+
+def get_items(request):
+    try:
+        start_form = request.GET.get('start_form', 0)
+        item_count = request.GET.get('item_count', 10)
+        user = User.objects.get(pk=request.session['user_id'])
+        user_items_set = UserItem.objects.filter(owner_id=user.id).filter(pk__gt=start_form).select_related('item')[
                          :item_count]
         items = []
         ids = []
@@ -79,8 +96,10 @@ def get_items(request, start_form=0, item_count=10):
             ids.append(item.item_id)
         items_set = Item.objects.filter(id__in=ids)
         i = 0
+
         for item in items_set:
             items[i]['item'] = model_to_dict(item)
+
         result = items
     except User.DoesNotExist:
         return JsonResponse({'errorMessage': "Please login first."}, 403)
@@ -98,24 +117,30 @@ def create_item(request):
         form = forms.CreateItemForm(form_data)
         if form.is_valid():
             result = model_to_dict(form.save(user))
-        result['error'] = form.errors
+        result['errors'] = form.errors
     except User.DoesNotExist:
         return JsonResponse({'errorMessage': 'Please login first.'}, 403)
     return JsonResponse(result)
 
 
 def pick_item(request):
-    try:
-        form_data = json.loads(request.body)
-    except:
-        return JsonResponse({'errorMessage': 'Bad JSON format.'}, 400)
+    if request.GET.has_key('item_id'):
+        form_data = {'item_id': request.GET['item_id']}
+    else:
+        try:
+            form_data = json.loads(request.body)
+        except:
+            return JsonResponse({'errorMessage': 'Bad JSON format.'}, 400)
     try:
         result = {}
-        user = User.objects.get(pk=request.session['user_id'])
+        if request.session.has_key('user_id'):
+            user = User.objects.get(pk=request.session['user_id'])
+        else:
+            raise User.DoesNotExist()
         form = forms.PickItemForm(form_data)
         if form.is_valid():
             result = model_to_dict(form.pick(user))
-        result['error'] = form.errors
+        result['errors'] = form.errors
     except User.DoesNotExist:
         return JsonResponse({'errorMessage': 'Please login first.'}, 403)
     return JsonResponse(result)
@@ -132,7 +157,7 @@ def delete_user_item(request):
         form = forms.DeleteUserItemForm(form_data, user)
         if form.is_valid():
             form.delete()
-        result['error'] = form.errors
+        result['errors'] = form.errors
     except User.DoesNotExist:
         return JsonResponse({'errorMessage': 'Please login first.'}, 403)
     return JsonResponse(result)
@@ -149,7 +174,7 @@ def finish_user_item(request):
         form = forms.FinishUserItem(form_data, user)
         if form.is_valid():
             result = model_to_dict(form.finish())
-        result['error'] = form.errors
+        result['errors'] = form.errors
     except User.DoesNotExist:
         return JsonResponse({'errorMessage': 'Please login first.'}, 403)
     return JsonResponse(result)
@@ -166,7 +191,39 @@ def unfinish_user_item(request):
         form = forms.UnfinishUserItem(form_data, user)
         if form.is_valid():
             result = model_to_dict(form.unfinish())
-        result['error'] = form.errors
+        result['errors'] = form.errors
     except User.DoesNotExist:
         return JsonResponse({'errorMessage': 'Please login first.'}, 403)
+    return JsonResponse(result)
+
+
+def get_public_items(request):
+    finished_set = set()
+    picked_set = set()
+    try:
+        if request.session.has_key('user_id'):
+            user = User.objects.get(pk=request.session['user_id'])
+            user_items = UserItem.objects.filter(owner_id=user.id)
+            for user_item in user_items:
+                picked_set.add(user_item.item_id)
+                if user_item.finished:
+                    finished_set.add(user_item.item_id)
+    except User.DoesNotExist:
+        pass
+    source = request.GET.get('source', None)
+    start_from = int(request.GET.get('start_form', 0))
+    item_count = int(request.GET.get('item_count', 10))
+    mgr = Item.objects.all().order_by('-created_on')
+    if source is not None:
+        mgr = mgr.filter(source=source)
+    items = mgr.all()[start_from: (start_from + item_count)]
+    result = []
+    for item in items:
+        model_dict = model_to_dict(item)
+        model_dict['meta'] = json.loads(model_dict['meta'])
+        if model_dict['id'] in picked_set:
+            model_dict['picked'] = True
+        if model_dict['id'] in finished_set:
+            model_dict['finished'] = True
+        result.append(model_dict)
     return JsonResponse(result)

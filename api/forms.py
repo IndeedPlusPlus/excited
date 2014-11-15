@@ -1,6 +1,7 @@
 from django import forms
-from common.models import User, Item, UserItem
 from django.contrib.auth.hashers import make_password, check_password
+
+from common.models import User, Item, UserItem
 
 
 class RegisterForm(forms.Form):
@@ -59,6 +60,8 @@ class CreateItemForm(forms.Form):
         item = Item()
         item.title = cleaned_data.get('title')
         item.content = cleaned_data.get('content')
+        item.source = user.nickname
+        item.meta = ' { "type" : "todo" } '
         item.save()
         user_item = UserItem()
         user_item.item_id = item.id
