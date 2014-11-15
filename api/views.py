@@ -89,18 +89,19 @@ def get_items(request):
         user = User.objects.get(pk=request.session['user_id'])
         user_items_set = UserItem.objects.filter(owner_id=user.id).filter(pk__gt=start_form).select_related('item')[
                          :item_count]
-        items = []
+        user_items = []
         ids = []
-        for item in user_items_set:
-            items.append(model_to_dict(item))
-            ids.append(item.item_id)
+        for user_item in user_items_set:
+            ids.append(user_item.item_id)
         items_set = Item.objects.filter(id__in=ids)
-        i = 0
-
+        id_to_item = dict()
         for item in items_set:
-            items[i]['item'] = model_to_dict(item)
-
-        result = items
+            id_to_item[item.id] = item
+        for item in user_items_set:
+            dict_item = model_to_dict(item)
+            dict_item['item'] = model_to_dict(id_to_item[item.item_id])
+            user_items.append(dict_item)
+        result = user_items
     except User.DoesNotExist:
         return JsonResponse({'errorMessage': "Please login first."}, 403)
     return JsonResponse(result)
@@ -124,13 +125,10 @@ def create_item(request):
 
 
 def pick_item(request):
-    if request.GET.has_key('item_id'):
-        form_data = {'item_id': request.GET['item_id']}
-    else:
-        try:
-            form_data = json.loads(request.body)
-        except:
-            return JsonResponse({'errorMessage': 'Bad JSON format.'}, 400)
+    try:
+        form_data = json.loads(request.body)
+    except:
+        return JsonResponse({'errorMessage': 'Bad JSON format.'}, 400)
     try:
         result = {}
         if request.session.has_key('user_id'):

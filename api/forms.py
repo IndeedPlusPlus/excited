@@ -83,10 +83,9 @@ class PickItemForm(forms.Form):
         return cleaned_data
 
     def pick(self, user):
-        user_item = UserItem()
-        user_item.item_id = self.item.id
-        user_item.owner_id = user.id
-        user_item.save()
+        user_item, created = UserItem.objects.get_or_create(
+            item_id=self.item.id,
+            owner_id=user.id)
         return user_item
 
 
