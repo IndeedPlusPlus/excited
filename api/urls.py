@@ -14,5 +14,6 @@ urlpatterns = patterns('',
                        url(r'^finish-user-item/', views.finish_user_item, name='finish_user_item'),
                        url(r'^unfinish-user-item/', views.unfinish_user_item, name='unfinish_user_item'),
                        url(r'^get-public-items/', views.get_public_items, name='get_public_items'),
+                       url(r'^get-item/', views.get_item, name='get_item')
 
 )

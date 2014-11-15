@@ -225,3 +225,16 @@ def get_public_items(request):
             model_dict['finished'] = True
         result.append(model_dict)
     return JsonResponse(result)
+
+
+def get_item(request):
+    id = None
+    try:
+        id = request.GET.get('id', None)
+    except:
+        return JsonResponse({'errorMessage': 'Invalid id.'}, 400)
+    try:
+        item = Item.objects.get(pk=id)
+    except Item.DoesNotExist:
+        return JsonResponse({'errorMessage': 'Item not found.'}, 404)
+    return JsonResponse(model_to_dict(item))
