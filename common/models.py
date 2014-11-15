@@ -1,3 +1,4 @@
+from common.utils import get_time_milliseconds
 from django.db import models
 
 
@@ -10,8 +11,14 @@ class User(models.Model):
 
 class Item(models.Model):
     id = models.BigIntegerField(primary_key=True)
-    owner = models.IntegerField(db_index=True)
-    title = models.TextField(max_length=65576)
-    content = models.TextField(max_length=65576)
+    title = models.TextField(max_length=65536)
+    content = models.TextField(max_length=65536)
+    created_on = models.BigIntegerField(default=get_time_milliseconds, blank=True)
 
 
+class UserItem(models.Model):
+    owner = models.ForeignKey('User')
+    item = models.ForeignKey('Item')
+    created_on = models.BigIntegerField(default=get_time_milliseconds, blank=True)
+    finished_on = models.BigIntegerField(default=0, blank=True)
+    finished = models.BooleanField(default=False)
