@@ -1,3 +1,6 @@
+import json
+import hashlib
+
 from django import forms
 from django.contrib.auth.hashers import make_password, check_password
 
@@ -60,8 +63,8 @@ class CreateItemForm(forms.Form):
         item = Item()
         item.title = cleaned_data.get('title')
         item.content = cleaned_data.get('content')
+        item.meta = json.dumps({'type': 'todo', 'mail_hash': hashlib.md5(user.email).hexdigest()})
         item.source = user.nickname
-        item.meta = ' { "type" : "todo" } '
         item.save()
         user_item = UserItem()
         user_item.item = item
