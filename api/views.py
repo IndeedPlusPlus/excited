@@ -87,17 +87,20 @@ def get_items(request):
         start_form = request.GET.get('start_form', 0)
         item_count = request.GET.get('item_count', 10)
         user = User.objects.get(pk=request.session['user_id'])
-        user_items_set = UserItem.objects.filter(owner_id=user.id).filter(pk__gt=start_form).select_related('item')[
+        user_items_set = UserItem.objects.filter(owner_id=user.id).order_by('id').filter(
+            pk__gt=start_form).select_related('item')[
                          :item_count]
         user_items = []
         ids = []
+        user_items_list = []
         for user_item in user_items_set:
             ids.append(user_item.item_id)
+            user_items_list.append(user_item)
         items_set = Item.objects.filter(id__in=ids)
         id_to_item = dict()
         for item in items_set:
             id_to_item[item.id] = item
-        for item in user_items_set:
+        for item in user_items_list:
             dict_item = model_to_dict(item)
             dict_item['item'] = model_to_dict(id_to_item[item.item_id])
             user_items.append(dict_item)
